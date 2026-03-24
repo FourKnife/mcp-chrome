@@ -11,6 +11,19 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   abstract name: string;
   abstract execute(args: any): Promise<ToolResult>;
 
+  protected async getTabByIdOrThrow(tabId: number): Promise<chrome.tabs.Tab> {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (!tab || !tab.id) {
+        throw new Error(`Tab ${tabId} not found`);
+      }
+      return tab;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Tab ${tabId} not found: ${message}`);
+    }
+  }
+
   /**
    * Inject content script into tab
    */
@@ -169,5 +182,15 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     const tab = await this.getActiveTabInWindow(windowId);
     if (!tab || !tab.id) throw new Error('Active tab not found');
     return tab;
+  }
+
+  protected async resolveTargetTab(options: {
+    tabId?: number;
+    windowId?: number;
+  }): Promise<chrome.tabs.Tab> {
+    if (typeof options.tabId === 'number') {
+      return this.getTabByIdOrThrow(options.tabId);
+    }
+    return this.getActiveTabOrThrowInWindow(options.windowId);
   }
 }

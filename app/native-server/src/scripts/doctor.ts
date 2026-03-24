@@ -411,11 +411,11 @@ function resolveNodeCandidate(distDir: string): NodeResolutionResult {
 function resolveTargetBrowsers(browserArg: string | undefined): BrowserType[] | undefined {
   if (!browserArg) return undefined;
   const normalized = browserArg.toLowerCase();
-  if (normalized === 'all') return [BrowserType.CHROME, BrowserType.CHROMIUM];
+  if (normalized === 'all') return [BrowserType.CHROME_BETA];
   if (normalized === 'detect' || normalized === 'auto') return undefined;
   const parsed = parseBrowserType(normalized);
   if (!parsed) {
-    throw new Error(`Invalid browser: ${browserArg}. Use 'chrome', 'chromium', or 'all'`);
+    throw new Error(`Invalid browser: ${browserArg}. Use 'chrome-beta' or 'all'`);
   }
   return [parsed];
 }
@@ -424,7 +424,7 @@ function resolveBrowsersToCheck(requested: BrowserType[] | undefined): BrowserTy
   if (requested && requested.length > 0) return requested;
   const detected = detectInstalledBrowsers();
   if (detected.length > 0) return detected;
-  return [BrowserType.CHROME, BrowserType.CHROMIUM];
+  return [BrowserType.CHROME_BETA];
 }
 
 // ============================================================================

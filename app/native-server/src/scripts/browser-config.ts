@@ -5,8 +5,7 @@ import { execSync } from 'child_process';
 import { HOST_NAME } from './constant';
 
 export enum BrowserType {
-  CHROME = 'chrome',
-  CHROMIUM = 'chromium',
+  CHROME_BETA = 'chrome-beta',
 }
 
 export interface BrowserConfig {
@@ -27,32 +26,33 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
   if (platform === 'win32') {
     const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
     switch (browser) {
-      case BrowserType.CHROME:
-        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${HOST_NAME}.json`);
-      case BrowserType.CHROMIUM:
-        return path.join(appData, 'Chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+      case BrowserType.CHROME_BETA:
+        return path.join(
+          appData,
+          'Google',
+          'Chrome Beta',
+          'NativeMessagingHosts',
+          `${HOST_NAME}.json`,
+        );
       default:
-        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(
+          appData,
+          'Google',
+          'Chrome Beta',
+          'NativeMessagingHosts',
+          `${HOST_NAME}.json`,
+        );
     }
   } else if (platform === 'darwin') {
     const home = os.homedir();
     switch (browser) {
-      case BrowserType.CHROME:
+      case BrowserType.CHROME_BETA:
         return path.join(
           home,
           'Library',
           'Application Support',
           'Google',
-          'Chrome',
-          'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
-        );
-      case BrowserType.CHROMIUM:
-        return path.join(
-          home,
-          'Library',
-          'Application Support',
-          'Chromium',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
@@ -62,7 +62,7 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
           'Library',
           'Application Support',
           'Google',
-          'Chrome',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
@@ -71,21 +71,19 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
     // Linux
     const home = os.homedir();
     switch (browser) {
-      case BrowserType.CHROME:
+      case BrowserType.CHROME_BETA:
         return path.join(
           home,
           '.config',
-          'google-chrome',
+          'google-chrome-beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
-      case BrowserType.CHROMIUM:
-        return path.join(home, '.config', 'chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
       default:
         return path.join(
           home,
           '.config',
-          'google-chrome',
+          'google-chrome-beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
@@ -102,40 +100,30 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
   if (platform === 'win32') {
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
     switch (browser) {
-      case BrowserType.CHROME:
+      case BrowserType.CHROME_BETA:
         return path.join(
           programFiles,
           'Google',
-          'Chrome',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
-      case BrowserType.CHROMIUM:
-        return path.join(programFiles, 'Chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
       default:
         return path.join(
           programFiles,
           'Google',
-          'Chrome',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
     }
   } else if (platform === 'darwin') {
     switch (browser) {
-      case BrowserType.CHROME:
+      case BrowserType.CHROME_BETA:
         return path.join(
           '/Library',
           'Google',
-          'Chrome',
-          'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
-        );
-      case BrowserType.CHROMIUM:
-        return path.join(
-          '/Library',
-          'Application Support',
-          'Chromium',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
@@ -143,7 +131,7 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
         return path.join(
           '/Library',
           'Google',
-          'Chrome',
+          'Chrome Beta',
           'NativeMessagingHosts',
           `${HOST_NAME}.json`,
         );
@@ -151,12 +139,22 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
   } else {
     // Linux
     switch (browser) {
-      case BrowserType.CHROME:
-        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${HOST_NAME}.json`);
-      case BrowserType.CHROMIUM:
-        return path.join('/etc', 'chromium', 'native-messaging-hosts', `${HOST_NAME}.json`);
+      case BrowserType.CHROME_BETA:
+        return path.join(
+          '/etc',
+          'opt',
+          'chrome-beta',
+          'native-messaging-hosts',
+          `${HOST_NAME}.json`,
+        );
       default:
-        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${HOST_NAME}.json`);
+        return path.join(
+          '/etc',
+          'opt',
+          'chrome-beta',
+          'native-messaging-hosts',
+          `${HOST_NAME}.json`,
+        );
     }
   }
 }
@@ -168,13 +166,9 @@ function getRegistryKeys(browser: BrowserType): { user: string; system: string }
   if (os.platform() !== 'win32') return undefined;
 
   const browserPaths: Record<BrowserType, { user: string; system: string }> = {
-    [BrowserType.CHROME]: {
-      user: `HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\${HOST_NAME}`,
-      system: `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${HOST_NAME}`,
-    },
-    [BrowserType.CHROMIUM]: {
-      user: `HKCU\\Software\\Chromium\\NativeMessagingHosts\\${HOST_NAME}`,
-      system: `HKLM\\Software\\Chromium\\NativeMessagingHosts\\${HOST_NAME}`,
+    [BrowserType.CHROME_BETA]: {
+      user: `HKCU\\Software\\Google\\Chrome Beta\\NativeMessagingHosts\\${HOST_NAME}`,
+      system: `HKLM\\Software\\Google\\Chrome Beta\\NativeMessagingHosts\\${HOST_NAME}`,
     },
   };
 
@@ -187,9 +181,13 @@ function getRegistryKeys(browser: BrowserType): { user: string; system: string }
 export function getBrowserConfig(browser: BrowserType): BrowserConfig {
   const registryKeys = getRegistryKeys(browser);
 
+  const displayNames: Record<BrowserType, string> = {
+    [BrowserType.CHROME_BETA]: 'Chrome Beta',
+  };
+
   return {
     type: browser,
-    displayName: browser.charAt(0).toUpperCase() + browser.slice(1),
+    displayName: displayNames[browser],
     userManifestPath: getUserManifestPathForBrowser(browser),
     systemManifestPath: getSystemManifestPathForBrowser(browser),
     registryKey: registryKeys?.user,
@@ -207,8 +205,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
   if (platform === 'win32') {
     // Check Windows registry for installed browsers
     const browsers: Array<{ type: BrowserType; registryPath: string }> = [
-      { type: BrowserType.CHROME, registryPath: 'HKLM\\SOFTWARE\\Google\\Chrome' },
-      { type: BrowserType.CHROMIUM, registryPath: 'HKLM\\SOFTWARE\\Chromium' },
+      { type: BrowserType.CHROME_BETA, registryPath: 'HKLM\\SOFTWARE\\Google\\Chrome Beta' },
     ];
 
     for (const browser of browsers) {
@@ -222,8 +219,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
   } else if (platform === 'darwin') {
     // Check macOS Applications folder
     const browsers: Array<{ type: BrowserType; appPath: string }> = [
-      { type: BrowserType.CHROME, appPath: '/Applications/Google Chrome.app' },
-      { type: BrowserType.CHROMIUM, appPath: '/Applications/Chromium.app' },
+      { type: BrowserType.CHROME_BETA, appPath: '/Applications/Google Chrome Beta.app' },
     ];
 
     for (const browser of browsers) {
@@ -234,8 +230,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
   } else {
     // Check Linux paths using which command
     const browsers: Array<{ type: BrowserType; commands: string[] }> = [
-      { type: BrowserType.CHROME, commands: ['google-chrome', 'google-chrome-stable'] },
-      { type: BrowserType.CHROMIUM, commands: ['chromium', 'chromium-browser'] },
+      { type: BrowserType.CHROME_BETA, commands: ['google-chrome-beta'] },
     ];
 
     for (const browser of browsers) {

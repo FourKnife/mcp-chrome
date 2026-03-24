@@ -41,7 +41,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
       let tab;
 
       if (typeof explicitTabId === 'number') {
-        tab = await chrome.tabs.get(explicitTabId);
+        tab = await this.resolveTargetTab({ tabId: explicitTabId, windowId });
       } else if (url) {
         // If URL is provided, check if it's already open
         console.log(`Checking if URL is already open: ${url}`);
@@ -86,8 +86,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       // Optionally bring tab/window to foreground
       if (!background) {
-        await chrome.tabs.update(tab.id, { active: true });
-        await chrome.windows.update(tab.windowId, { focused: true });
+        await this.ensureFocus(tab, { activate: true, focusWindow: true });
       }
 
       // Prepare result object

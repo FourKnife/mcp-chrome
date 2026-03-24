@@ -309,10 +309,10 @@ export async function tryRegisterUserLevelHost(targetBrowsers?: BrowserType[]): 
     // 2. 确定要注册的浏览器
     const browsersToRegister = targetBrowsers || detectInstalledBrowsers();
     if (browsersToRegister.length === 0) {
-      // 如果没有检测到浏览器，默认注册Chrome和Chromium
-      browsersToRegister.push(BrowserType.CHROME, BrowserType.CHROMIUM);
+      // 如果没有检测到浏览器，默认注册Chrome Beta
+      browsersToRegister.push(BrowserType.CHROME_BETA);
       console.log(
-        colorText('No browsers detected, registering for Chrome and Chromium by default', 'yellow'),
+        colorText('No browsers detected, registering for Chrome Beta by default', 'yellow'),
       );
     } else {
       console.log(colorText(`Detected browsers: ${browsersToRegister.join(', ')}`, 'blue'));

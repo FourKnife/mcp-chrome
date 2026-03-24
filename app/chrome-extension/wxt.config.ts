@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { homedir } from 'os';
 import Icons from 'unplugin-icons/vite';
 import Components from 'unplugin-vue-components/vite';
 import IconsResolver from 'unplugin-icons/resolver';
@@ -18,18 +19,27 @@ const IS_DEV = process.env.NODE_ENV !== 'production' && process.env.MODE !== 'pr
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   runner: {
-    // 方案1: 禁用自动启动（推荐）
-    disabled: true,
-
-    // 方案2: 如果要启用自动启动并使用现有配置，取消注释下面的配置
-    // chromiumArgs: [
-    //   '--user-data-dir=' + homedir() + (process.platform === 'darwin'
-    //     ? '/Library/Application Support/Google/Chrome'
-    //     : process.platform === 'win32'
-    //     ? '/AppData/Local/Google/Chrome/User Data'
-    //     : '/.config/google-chrome'),
-    //   '--remote-debugging-port=9222',
-    // ],
+    // 启用自动启动并使用 Chrome Canary
+    disabled: false,
+    // 指定 Chrome Canary 的可执行文件路径
+    binaries: {
+      chrome:
+        process.platform === 'darwin'
+          ? '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+          : process.platform === 'win32'
+            ? 'C:\\Users\\%USERNAME%\\AppData\\Local\\Google\\Chrome SxS\\Application\\chrome.exe'
+            : '/usr/bin/google-chrome-unstable',
+    },
+    chromiumArgs: [
+      '--user-data-dir=' +
+        homedir() +
+        (process.platform === 'darwin'
+          ? '/Library/Application Support/Google/Chrome Canary'
+          : process.platform === 'win32'
+            ? '/AppData/Local/Google/Chrome SxS/User Data'
+            : '/.config/google-chrome-unstable'),
+      '--remote-debugging-port=9222',
+    ],
   },
   manifest: {
     // Use environment variable for the key, fallback to undefined if not set

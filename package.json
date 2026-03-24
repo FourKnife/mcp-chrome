@@ -49,5 +49,6 @@
     "**/*.{json,md,yaml,html,css}": [
       "prettier --write"
     ]
-  }
+  },
+  "repository": "https://github.com/hangwin/mcp-chrome.git"
 }

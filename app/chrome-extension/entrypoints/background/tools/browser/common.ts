@@ -59,9 +59,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
       // Handle refresh option first
       if (refresh) {
         console.log('Refreshing current active tab');
-        const explicit = await this.tryGetTab(tabId);
-        // Get target tab (explicit or active in provided window)
-        const targetTab = explicit || (await this.getActiveTabOrThrowInWindow(windowId));
+        const targetTab = await this.resolveTargetTab({ tabId, windowId });
         if (!targetTab.id) return createErrorResponse('No target tab found to refresh');
         await chrome.tabs.reload(targetTab.id);
 
@@ -97,8 +95,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
       // Handle history navigation: url="back" or url="forward"
       if (url === 'back' || url === 'forward') {
-        const explicitTab = await this.tryGetTab(tabId);
-        const targetTab = explicitTab || (await this.getActiveTabOrThrowInWindow(windowId));
+        const targetTab = await this.resolveTargetTab({ tabId, windowId });
         if (!targetTab.id) {
           return createErrorResponse('No target tab found for history navigation');
         }
@@ -250,7 +247,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
         return best.tab;
       };
 
-      const explicitTab = await this.tryGetTab(tabId);
+      const explicitTab = typeof tabId === 'number' ? await this.getTabByIdOrThrow(tabId) : null;
       const existingTab = explicitTab || pickBestMatch(url, candidateTabs);
       if (existingTab?.id !== undefined) {
         console.log(

@@ -50,8 +50,10 @@ class ReadPageTool extends BaseBrowserToolExecutor {
       const standardTips =
         "If the specific element you need is missing from the returned data, use the 'screenshot' tool to capture the current viewport and confirm the element's on-screen coordinates. Also note: 'markedElements' are user-marked elements and have the highest priority when choosing targets.";
 
-      const explicit = await this.tryGetTab(args?.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args?.windowId));
+      const tab = await this.resolveTargetTab({
+        tabId: args?.tabId,
+        windowId: args?.windowId,
+      });
       if (!tab.id)
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
 
