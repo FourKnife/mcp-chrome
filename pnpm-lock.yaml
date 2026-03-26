@@ -166,8 +166,8 @@ importers:
         specifier: ^1.0.1299282
         version: 1.0.1599001
       chrome-mcp-shared:
-        specifier: workspace:*
-        version: link:../../packages/shared
+        specifier: ^1.0.2
+        version: 1.0.2
       commander:
         specifier: ^13.1.0
         version: 13.1.0
@@ -2309,6 +2309,9 @@ packages:
     resolution: {integrity: sha512-JbuGuBNss258bvGil7FT4HKdC3SC2K7UAEUqiPy3ACS3Yxo3hAW6bvFpCu2HsIJLgTqxgEX6BkujvzZfLpUD0Q==}
     engines: {node: '>=12.13.0'}
     hasBin: true
+
+  chrome-mcp-shared@1.0.2:
+    resolution: {integrity: sha512-v+6HBmcgXrIfyVbkkrVgfFDzqOfDutI8yZM0yA8k7SiicqL1MfBoqnsOy5idYNvxyQymxCxXNuTmajn8xaGsgQ==}
 
   ci-info@3.9.0:
     resolution: {integrity: sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==}
@@ -8022,6 +8025,14 @@ snapshots:
       is-wsl: 2.2.0
       lighthouse-logger: 2.0.2
     transitivePeerDependencies:
+      - supports-color
+
+  chrome-mcp-shared@1.0.2:
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
       - supports-color
 
   ci-info@3.9.0: {}

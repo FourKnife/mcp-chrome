@@ -1,12 +1,12 @@
 {
-  "name": "mcp-chrome-bridge",
-  "version": "1.0.29",
-  "description": "Chrome Native-Messaging host (Node)",
+  "name": "mcp-chrome-beta-bridge",
+  "version": "1.0.0",
+  "description": "Chrome Beta Native-Messaging host (Node) - MCP server for Chrome Beta browser automation",
   "main": "dist/index.js",
   "bin": {
-    "mcp-chrome-bridge": "./dist/cli.js",
-    "chrome-mcp-bridge": "./dist/cli.js",
-    "mcp-chrome-stdio": "./dist/mcp/mcp-server-stdio.js"
+    "mcp-chrome-beta-bridge": "./dist/cli.js",
+    "chrome-beta-mcp-bridge": "./dist/cli.js",
+    "mcp-chrome-beta-stdio": "./dist/mcp/mcp-server-stdio.js"
   },
   "scripts": {
     "dev": "nodemon --watch src --ext ts,js,json --ignore dist/ --exec \"npm run build && npm run register:dev\"",
@@ -31,9 +31,20 @@
   "keywords": [
     "mcp",
     "chrome",
-    "browser"
+    "chrome-beta",
+    "browser",
+    "automation",
+    "model-context-protocol"
   ],
-  "author": "hangye",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anthropics/mcp-chrome.git"
+  },
+  "homepage": "https://github.com/anthropics/mcp-chrome#readme",
+  "bugs": {
+    "url": "https://github.com/anthropics/mcp-chrome/issues"
+  },
+  "author": "duanrong",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.69",
@@ -43,7 +54,7 @@
     "better-sqlite3": "^11.6.0",
     "chalk": "^5.4.1",
     "chrome-devtools-frontend": "^1.0.1299282",
-    "chrome-mcp-shared": "workspace:*",
+    "chrome-mcp-shared": "^1.0.2",
     "commander": "^13.1.0",
     "drizzle-orm": "^0.38.2",
     "fastify": "^5.3.2",
