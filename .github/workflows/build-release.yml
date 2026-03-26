@@ -50,7 +50,10 @@ jobs:
         run: cargo install wasm-pack
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: HUSKY=0 pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Prepare WXT
+        run: pnpm --filter chrome-mcp-server exec wxt prepare
 
       - name: Build shared packages
         run: pnpm run build:shared
