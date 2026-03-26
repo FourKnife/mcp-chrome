@@ -1,72 +1,98 @@
-# name: Build and Release Chrome Extension
+name: Build and Release Chrome Extension
 
-# on:
-#   push:
-#     branches: [ master, develop ]
-#     paths:
-#       - 'app/chrome-extension/**'
-#   pull_request:
-#     branches: [ master ]
-#     paths:
-#       - 'app/chrome-extension/**'
-#   workflow_dispatch:
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Existing tag to publish, for example v1.0.0'
+        required: true
+      release_name:
+        description: 'Optional release title. Defaults to the tag name.'
+        required: false
+      prerelease:
+        description: 'Mark the release as a prerelease'
+        required: false
+        type: boolean
+        default: false
 
-# jobs:
-#   build-extension:
-#     runs-on: ubuntu-latest
-    
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-      
-#     - name: Setup Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: '18'
-#         cache: 'npm'
-#         cache-dependency-path: 'app/chrome-extension/package-lock.json'
-        
-#     - name: Install dependencies
-#       run: |
-#         cd app/chrome-extension
-#         npm ci
-        
-#     - name: Build extension
-#       run: |
-#         cd app/chrome-extension
-#         npm run build
-        
-#     - name: Create zip package
-#       run: |
-#         cd app/chrome-extension
-#         npm run zip
-        
-#     - name: Prepare release directory
-#       run: |
-#         mkdir -p releases/chrome-extension/latest
-#         mkdir -p releases/chrome-extension/$(date +%Y%m%d-%H%M%S)
-        
-#     - name: Copy release files
-#       run: |
-#         # Copy to latest
-#         cp app/chrome-extension/.output/chrome-mv3-prod.zip releases/chrome-extension/latest/chrome-mcp-server-latest.zip
-        
-#         # Copy to timestamped version
-#         TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-#         cp app/chrome-extension/.output/chrome-mv3-prod.zip releases/chrome-extension/$TIMESTAMP/chrome-mcp-server-$TIMESTAMP.zip
-        
-#     - name: Upload build artifacts
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: chrome-extension-build
-#         path: releases/chrome-extension/
-#         retention-days: 30
-        
-#     - name: Commit and push releases (if on main branch)
-#       if: github.ref == 'refs/heads/main'
-#       run: |
-#         git config --local user.email "action@github.com"
-#         git config --local user.name "GitHub Action"
-#         git add releases/
-#         git diff --staged --quiet || git commit -m "Auto-build: Update Chrome extension release [skip ci]"
-#         git push
+permissions:
+  contents: write
+
+jobs:
+  build-extension:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm run build:shared
+
+      - name: Build wasm bundle
+        run: pnpm run build:wasm
+
+      - name: Package Chrome extension
+        run: pnpm --filter chrome-mcp-server zip
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+            RELEASE_NAME="${{ github.event.inputs.release_name }}"
+            if [[ -z "${RELEASE_NAME}" ]]; then
+              RELEASE_NAME="${TAG_NAME}"
+            fi
+            PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            TAG_NAME="${GITHUB_REF_NAME}"
+            RELEASE_NAME="${TAG_NAME}"
+            PRERELEASE="false"
+          fi
+
+          ASSET_NAME="chrome-mcp-server-${TAG_NAME}.zip"
+          cp app/chrome-extension/.output/chrome-mv3-prod.zip "app/chrome-extension/.output/${ASSET_NAME}"
+
+          echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "release_name=${RELEASE_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "asset_name=${ASSET_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.asset_name }}
+          path: app/chrome-extension/.output/${{ steps.meta.outputs.asset_name }}
+          retention-days: 30
+
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: ${{ steps.meta.outputs.release_name }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          overwrite_files: true
+          files: app/chrome-extension/.output/${{ steps.meta.outputs.asset_name }}
