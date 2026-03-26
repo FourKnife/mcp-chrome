@@ -82,7 +82,15 @@ jobs:
           fi
 
           ASSET_NAME="chrome-mcp-server-${TAG_NAME}.zip"
-          cp app/chrome-extension/.output/chrome-mv3-prod.zip "app/chrome-extension/.output/${ASSET_NAME}"
+          shopt -s nullglob
+          ZIP_FILES=(app/chrome-extension/.output/*.zip)
+          if [[ "${#ZIP_FILES[@]}" -ne 1 ]]; then
+            echo "Expected exactly one zip artifact in app/chrome-extension/.output, found ${#ZIP_FILES[@]}"
+            ls -la app/chrome-extension/.output
+            exit 1
+          fi
+
+          cp "${ZIP_FILES[0]}" "app/chrome-extension/.output/${ASSET_NAME}"
 
           echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
           echo "release_name=${RELEASE_NAME}" >> "${GITHUB_OUTPUT}"
