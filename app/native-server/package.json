@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-beta-bridge",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "description": "Chrome Beta Native-Messaging host (Node) - MCP server for Chrome Beta browser automation",
   "main": "dist/index.js",
   "bin": {
