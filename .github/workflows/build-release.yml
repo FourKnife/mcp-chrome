@@ -24,6 +24,8 @@ permissions:
 jobs:
   build-extension:
     runs-on: ubuntu-latest
+    env:
+      CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
 
     steps:
       - name: Checkout code
@@ -52,6 +54,9 @@ jobs:
       - name: Install dependencies
         run: HUSKY=0 pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Validate extension signing key
+        run: node app/chrome-extension/scripts/verify-extension-key.mjs
+
       - name: Prepare WXT
         run: pnpm --filter chrome-mcp-server exec wxt prepare
 
@@ -63,6 +68,9 @@ jobs:
 
       - name: Package Chrome extension
         run: pnpm --filter chrome-mcp-server zip
+
+      - name: Validate packaged manifest
+        run: node app/chrome-extension/scripts/verify-extension-key.mjs --manifest app/chrome-extension/.output/chrome-mv3/manifest.json
 
       - name: Resolve release metadata
         id: meta
