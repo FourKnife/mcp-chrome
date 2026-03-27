@@ -19,6 +19,8 @@ const SCREENSHOT_CONSTANTS = {
   MAX_CAPTURE_HEIGHT_PX: 50000, // Maximum height in pixels to capture
   PIXEL_TOLERANCE: 1,
   SCRIPT_INIT_DELAY: 100, // Delay for script initialization
+  READBACK_RETRY_COUNT: 2, // Extra attempts when Chrome returns a transient image readback failure
+  READBACK_RETRY_DELAY_MS: 120,
 } as {
   readonly SCROLL_DELAY_MS: number;
   CAPTURE_STITCH_DELAY_MS: number; // This one is mutable
@@ -26,6 +28,8 @@ const SCREENSHOT_CONSTANTS = {
   readonly MAX_CAPTURE_HEIGHT_PX: number;
   readonly PIXEL_TOLERANCE: number;
   readonly SCRIPT_INIT_DELAY: number;
+  readonly READBACK_RETRY_COUNT: number;
+  readonly READBACK_RETRY_DELAY_MS: number;
 };
 
 // Adjust CAPTURE_STITCH_DELAY_MS to respect Chrome's capture rate if available in runtime
@@ -55,6 +59,7 @@ interface ScreenshotToolParams {
   fullPage?: boolean;
   savePng?: boolean;
   maxHeight?: number; // Maximum height to capture in pixels (for infinite scroll pages)
+  maxDimension?: number; // Maximum dimension (width or height) for base64 output (default: 350, 0 to disable)
 }
 
 /** Page details returned by screenshot-helper content script */
@@ -102,11 +107,64 @@ function assertValidPageDetails(details: unknown): ScreenshotPageDetails {
   return candidate as ScreenshotPageDetails;
 }
 
+function isReadbackFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /image readback failed/i.test(message);
+}
+
 /**
  * Tool for capturing screenshots of web pages
  */
 class ScreenshotTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.SCREENSHOT;
+
+  private async captureVisibleTabWithFallback(
+    tab: chrome.tabs.Tab,
+    options: chrome.tabs.ImageDetails = { format: 'png' },
+  ): Promise<string> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= SCREENSHOT_CONSTANTS.READBACK_RETRY_COUNT; attempt++) {
+      try {
+        return await chrome.tabs.captureVisibleTab(tab.windowId, options);
+      } catch (error) {
+        lastError = error;
+        if (!isReadbackFailure(error) || attempt === SCREENSHOT_CONSTANTS.READBACK_RETRY_COUNT) {
+          break;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, SCREENSHOT_CONSTANTS.READBACK_RETRY_DELAY_MS),
+        );
+      }
+    }
+
+    if (!tab.id) {
+      throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    }
+
+    try {
+      const { cdpSessionManager } = await import('@/utils/cdp-session-manager');
+      return await cdpSessionManager.withSession(tab.id, 'screenshot-readback-fallback', async () => {
+        const shot: any = await cdpSessionManager.sendCommand(tab.id!, 'Page.captureScreenshot', {
+          format: options.format ?? 'png',
+          fromSurface: true,
+          captureBeyondViewport: false,
+        });
+        const base64Data = typeof shot?.data === 'string' ? shot.data : '';
+        if (!base64Data) {
+          throw new Error('CDP Page.captureScreenshot returned empty data');
+        }
+        return `data:image/png;base64,${base64Data}`;
+      });
+    } catch (cdpError) {
+      const originalMessage =
+        lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown error');
+      const fallbackMessage = cdpError instanceof Error ? cdpError.message : String(cdpError);
+      throw new Error(
+        `Failed to capture tab: ${originalMessage}; CDP fallback failed: ${fallbackMessage}`,
+      );
+    }
+  }
 
   /**
    * Execute screenshot operation
@@ -212,7 +270,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
         if (fullPage) {
           this.logInfo('Capturing full page...');
-          finalImageDataUrl = await this._captureFullPage(tab.id!, args, pageDetails);
+          finalImageDataUrl = await this._captureFullPage(tab, tab.id!, args, pageDetails);
           // Compute final CSS size
           if (args.width && args.height) {
             finalImageWidthCss = args.width;
@@ -232,6 +290,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         } else if (selector) {
           this.logInfo(`Capturing element: ${selector}`);
           finalImageDataUrl = await this._captureElement(
+            tab,
             tab.id!,
             args,
             pageDetails.devicePixelRatio,
@@ -246,7 +305,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         } else {
           // Visible area only
           this.logInfo('Capturing visible area...');
-          finalImageDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+          finalImageDataUrl = await this.captureVisibleTabWithFallback(tab, { format: 'png' });
           finalImageWidthCss = pageDetails.viewportWidth;
           finalImageHeightCss = pageDetails.viewportHeight;
         }
@@ -283,10 +342,17 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       }
       if (storeBase64 === true) {
         // Compress image for base64 output to reduce size
+        // Calculate scale based on maxDimension (default: 350, 0 to disable)
+        const maxDim = args.maxDimension === 0 ? Infinity : (args.maxDimension ?? 350);
+        const imageBitmap = await createImageBitmapFromUrl(finalImageDataUrl);
+        const currentMaxDim = Math.max(imageBitmap.width, imageBitmap.height);
+        // Scale down if current dimension exceeds maxDimension
+        const scale = currentMaxDim > maxDim ? maxDim / currentMaxDim : 1.0;
+
         const compressed = await compressImage(finalImageDataUrl, {
-          scale: 0.7, // Reduce dimensions by 30%
+          scale,
           quality: 0.8, // 80% quality for good balance
-          format: 'image/jpeg', // JPEG for better compression
+          format: 'image/webp', // WebP for better compression than JPEG
         });
 
         // Include base64 data in response (without prefix)
@@ -396,6 +462,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
    * Capture specific element
    */
   async _captureElement(
+    tab: chrome.tabs.Tab,
     tabId: number,
     options: ScreenshotToolParams,
     pageDpr: number,
@@ -419,7 +486,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     // Small delay to ensure element is fully rendered after scrollIntoView
     await new Promise((resolve) => setTimeout(resolve, SCREENSHOT_CONSTANTS.SCRIPT_INIT_DELAY));
 
-    const visibleCaptureDataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
+    const visibleCaptureDataUrl = await this.captureVisibleTabWithFallback(tab, { format: 'png' });
     if (!visibleCaptureDataUrl) {
       throw new Error('Failed to capture visible tab for element cropping');
     }
@@ -438,6 +505,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
    * Capture full page
    */
   async _captureFullPage(
+    tab: chrome.tabs.Tab,
     tabId: number,
     options: ScreenshotToolParams,
     initialPageDetails: any,
@@ -490,7 +558,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         setTimeout(resolve, SCREENSHOT_CONSTANTS.CAPTURE_STITCH_DELAY_MS),
       );
 
-      const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
+      const dataUrl = await this.captureVisibleTabWithFallback(tab, { format: 'png' });
       if (!dataUrl) throw new Error('captureVisibleTab returned empty during full page capture');
 
       const yOffsetPx = currentScrollYCss * dpr;

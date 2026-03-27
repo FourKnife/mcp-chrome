@@ -482,6 +482,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
         },
+        maxDimension: {
+          type: 'number',
+          description:
+            'Maximum dimension (width or height) in pixels for the output image when storeBase64 is true. The image will be scaled down proportionally if either dimension exceeds this value. Default: 350. Set to 0 to disable.',
+        },
       },
       required: [],
     },
