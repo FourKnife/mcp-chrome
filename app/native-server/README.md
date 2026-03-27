@@ -53,26 +53,23 @@ npm run build
 #### 自动检测并注册所有已安装的浏览器
 
 ```bash
-mcp-chrome-bridge register --detect
+mcp-chrome-beta-bridge register --detect
 ```
 
 #### 注册特定浏览器
 
 ```bash
-# 仅注册 Chrome
-mcp-chrome-bridge register --browser chrome
-
-# 仅注册 Chromium
-mcp-chrome-bridge register --browser chromium
+# 仅注册 Chrome Beta
+mcp-chrome-beta-bridge register --browser chrome-beta
 
 # 注册所有支持的浏览器
-mcp-chrome-bridge register --browser all
+mcp-chrome-beta-bridge register --browser all
 ```
 
 #### 全局安装（会自动注册检测到的浏览器）
 
 ```bash
-npm i -g mcp-chrome-bridge
+npm i -g mcp-chrome-beta-bridge
 ```
 
 #### 浏览器支持
